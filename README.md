@@ -1,2 +1,4 @@
-# web-420
-Classwork for web-420 at Bellevue University
+# WEB 420 RESTful APIs
+## Contributors
+- Richard Krasso
+- Kylie Struhs
