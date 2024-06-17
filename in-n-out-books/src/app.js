@@ -12,7 +12,6 @@ const createError = require("http-errors");
 
 const app = express(); // Creates an Express application
 
-
 // parse incoming requests as JSON payloads
 app.use(express.json());
 
@@ -21,8 +20,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // add a GET route for the main URL
 
-app.get("/", async (req, res, next) => { // HTML content for the landing page
- const html = ` <html>
+app.get("/", async (req, res, next) => {
+  // HTML content for the landing page
+  const html = ` <html>
   <head>
   <title>In-n-Out Books</title>
    <style>
@@ -68,23 +68,24 @@ app.get("/", async (req, res, next) => { // HTML content for the landing page
     </body>
     </html> `; // end HTML content for the landing page
 
- res.send(html); // Sends the HTML content to the client
- });
+  res.send(html); // Sends the HTML content to the client
+});
 
 // add error handling
 // catch 404 and forward to error handler
-app.use(function(req, res, next) {
-next(createError(404)); });
+app.use(function (req, res, next) {
+  next(createError(404));
+});
 
 // error handler
-app.use(function(err, req, res, next) {
-res.status(err.status || 500);
+app.use(function (err, req, res, next) {
+  res.status(err.status || 500);
 
-res.json({
-  type: 'error',
-  status: err.status,
-  message: err.message,
-  stack: req.app.get('env') === 'development' ? err.stack : undefined
+  res.json({
+    type: "error",
+    status: err.status,
+    message: err.message,
+    stack: req.app.get("env") === "development" ? err.stack : undefined,
   });
 });
 
