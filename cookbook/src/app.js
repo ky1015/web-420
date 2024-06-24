@@ -1,6 +1,6 @@
 /*
   Name: Kylie Struhs
-  Date: June 12 2024
+  Date: June 23 2024
   File Name: app.js
   Description:
 */
@@ -11,6 +11,8 @@
   const createError = require("http-errors");
 
   const app = express(); // Creates an Express application
+
+  const recipes = require("../database/recipes");
 
 
 // parse incoming requests as JSON payloads
@@ -62,6 +64,36 @@ app.get("/", async (req, res, next) => { // HTML content for the landing page
    res.send(html); // Sends the HTML content to the client
    });
 
+
+// GET endpoint uses find method to return array
+app.get("/api/recipes", async (req, res, next) => {
+  try {
+  const allRecipes = await recipes.find();
+  console.log("All Recipes: ", allRecipes); // Logs all recipes
+  res.send(allRecipes); // Sends response with all recipes
+  } catch (err) {
+  console.error("Error: ", err.message); // Logs error message
+  next(err); // Passes error to the next middleware
+  }
+  });
+
+// makes sure input is a number and gets one recipe
+app.get("/api/recipes/:id", async (req, res, next) => {
+  try {
+    let { id } = req.params;
+    id = parseInt(id);
+      if (isNaN(id)) {
+      return next(createError(400, "Input must be a number"));
+      }
+    const recipe = await recipes.findOne({ id: id });
+    console.log("Recipe: ", recipe);
+    res.send(recipe);
+    } catch (err) {
+    console.error("Error: ", err.message);
+    next(err);
+  }
+  });
+
 // add error handling
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -79,4 +111,7 @@ app.use(function(err, req, res, next) {
     });
   });
 
-  module.exports = app;
+
+
+
+module.exports = app;

@@ -1,8 +1,7 @@
 /*
   Name: Kylie Struhs
-  Date: June 14 2024
+  Date: June 23 2024
   File Name: app.js
-  Description:
 */
 
 // set up Express Application
@@ -11,6 +10,7 @@ const bcrypt = require("bcryptjs");
 const createError = require("http-errors");
 
 const app = express(); // Creates an Express application
+const books = require("../database/books");
 
 // parse incoming requests as JSON payloads
 app.use(express.json());
@@ -69,6 +69,35 @@ app.get("/", async (req, res, next) => {
     </html> `; // end HTML content for the landing page
 
   res.send(html); // Sends the HTML content to the client
+});
+
+// GET routes
+app.get("/api/books", async (req, res, next) => {
+  try {
+    const allBooks = await books.find();
+    console.log("Book Titles: ", allBooks); // Logs all books
+    res.send(allBooks); // Sends response with all books
+  } catch (err) {
+    console.error("Error: ", err.message); // Logs error message
+    next(err); // Passes error to the next middleware
+  }
+});
+
+// makes sure input is a number and gets one book
+app.get("/api/books/:id", async (req, res, next) => {
+  try {
+    let { id } = req.params;
+    id = parseInt(id);
+    if (isNaN(id)) {
+      return next(createError(400, "Input must be a number"));
+    }
+    const book = await books.findOne({ id: id });
+    console.log("Book: ", book);
+    res.send(book);
+  } catch (err) {
+    console.error("Error: ", err.message);
+    next(err);
+  }
 });
 
 // add error handling
