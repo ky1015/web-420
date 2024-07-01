@@ -1,6 +1,6 @@
 /*
   Name: Kylie Struhs
-  Date: June 23 2024
+  Date: June 30 2024
   File Name: app.js
 */
 
@@ -10,7 +10,10 @@ const bcrypt = require("bcryptjs");
 const createError = require("http-errors");
 
 const app = express(); // Creates an Express application
+
 const books = require("../database/books");
+
+app.use(express.static("public"));
 
 // parse incoming requests as JSON payloads
 app.use(express.json());
@@ -46,23 +49,22 @@ app.get("/", async (req, res, next) => {
       <br />
       <main>
         <div class="my-shelf">
-          <h3>My Shelf</h3>
-            <p>
-              <ul>
-                <li>Pride and Prejudice</li>
-                <li>The Count of Monte Cristo</li>
-              </ul>
-            </p>
+          <h3>My Shelf: Ready to Read</h3>
+              <img src="/images/pjson.jfif" alt="Cover of Percy Jackson: Lost Heroes of Olympus Book 2 which depicts a teenager emerging out of the ocean carrying a golden eagle statue" height="400px" width="300px">
+              <img src="/images/selection.jpg" alt="Cover of The Selection which has a teenager in a flowing blue gown surrounded by mirrors" height="400px" width="300px">
               </div>
               <div class="previous-reads">
                 <h3>Previous Reads</h3>
-                <p>
-                <ul>
-                  <li>To Kill a Mockingbird</li>
-                  <li>Anne of Green Gables</li>
-                </ul>
-                </p>
+                  <img src="/images/tkam.jfif" alt="An image of a tree on a red background" height="400px" width="300px">
+                  <img src="/images/annegg.jpg" alt="A girl with red hair in a blue dress and with a large hat on a bridge" height="400px" width="300px">
               </div>
+              <aside>
+                  <h4>
+                  Recommended Books Based on Your Previous Reads:
+                  </h4>
+                  <img src="/images/ella.jfif" alt="A young teenage girl in a blue dress on a yellow background" height="400px" width="300px">
+                  <img src="/images/1984.jpg" alt="A book cover with an eye tilted vertically on a red background" height="400px" width="300px">
+                </aside>
         </main>
       </div>
     </body>
@@ -95,6 +97,45 @@ app.get("/api/books/:id", async (req, res, next) => {
     console.log("Book: ", book);
     res.send(book);
   } catch (err) {
+    console.error("Error: ", err.message);
+    next(err);
+  }
+});
+
+// Create new POST endpoint
+app.post("/api/books", async (req, res, next) => {
+  try {
+    const newBook = req.body;
+    const expectedKeys = ["id", "title", "author"];
+    const receivedKeys = Object.keys(newBook);
+    if (
+      !receivedKeys.every((key) => expectedKeys.includes(key)) ||
+      receivedKeys.length !== expectedKeys.length
+    ) {
+      console.error("Bad Request: Missing keys or extra keys", receivedKeys);
+      return next(createError(400, "Bad Request"));
+    }
+    const result = await books.insertOne(newBook);
+    console.log("Result: ", result);
+    res.status(201).send({ id: result.ops[0].id });
+  } catch (err) {
+    console.error("Error: ", err.message);
+    next(err);
+  }
+});
+
+
+// Create a new Delete endpoint
+app.delete("/api/books/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await books.deleteOne({ id: parseInt(id) });
+    console.log("Result: ", result);
+    res.status(204).send();
+  } catch (err) {
+    if (err.message === "No matching item found") {
+      return next(createError(404, "Book Title not found"));
+    }
     console.error("Error: ", err.message);
     next(err);
   }

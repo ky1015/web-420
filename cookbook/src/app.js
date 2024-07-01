@@ -6,14 +6,13 @@
 */
 
 // set up Express Application
-  const express = require("express");
-  const bcrypt = require("bcryptjs");
-  const createError = require("http-errors");
+const express = require("express");
+const bcrypt = require("bcryptjs");
+const createError = require("http-errors");
 
-  const app = express(); // Creates an Express application
+const app = express(); // Creates an Express application
 
-  const recipes = require("../database/recipes");
-
+const recipes = require("../database/recipes");
 
 // parse incoming requests as JSON payloads
 app.use(express.json());
@@ -23,8 +22,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // add a GET route for the main URL
 
-app.get("/", async (req, res, next) => { // HTML content for the landing page
-   const html = ` <html>
+app.get("/", async (req, res, next) => {
+  // HTML content for the landing page
+  const html = ` <html>
     <head>
     <title>Cookbook App</title>
      <style>
@@ -61,57 +61,92 @@ app.get("/", async (req, res, next) => { // HTML content for the landing page
         </div>
       </body>
       </html> `; // end HTML content for the landing page
-   res.send(html); // Sends the HTML content to the client
-   });
-
+  res.send(html); // Sends the HTML content to the client
+});
 
 // GET endpoint uses find method to return array
 app.get("/api/recipes", async (req, res, next) => {
   try {
-  const allRecipes = await recipes.find();
-  console.log("All Recipes: ", allRecipes); // Logs all recipes
-  res.send(allRecipes); // Sends response with all recipes
+    const allRecipes = await recipes.find();
+    console.log("All Recipes: ", allRecipes); // Logs all recipes
+    res.send(allRecipes); // Sends response with all recipes
   } catch (err) {
-  console.error("Error: ", err.message); // Logs error message
-  next(err); // Passes error to the next middleware
+    console.error("Error: ", err.message); // Logs error message
+    next(err); // Passes error to the next middleware
   }
-  });
+});
 
 // makes sure input is a number and gets one recipe
 app.get("/api/recipes/:id", async (req, res, next) => {
   try {
     let { id } = req.params;
     id = parseInt(id);
-      if (isNaN(id)) {
+    if (isNaN(id)) {
       return next(createError(400, "Input must be a number"));
-      }
+    }
     const recipe = await recipes.findOne({ id: id });
     console.log("Recipe: ", recipe);
     res.send(recipe);
-    } catch (err) {
+  } catch (err) {
     console.error("Error: ", err.message);
     next(err);
   }
-  });
+});
+
+// Create new POST endpoint
+app.post("/api/recipes", async (req, res, next) => {
+  try {
+    const newRecipe = req.body;
+    const expectedKeys = ["id", "name", "ingredients"];
+    const receivedKeys = Object.keys(newRecipe);
+    if (
+      !receivedKeys.every((key) => expectedKeys.includes(key)) ||
+      receivedKeys.length !== expectedKeys.length
+    ) {
+      console.error("Bad Request: Missing keys or extra keys", receivedKeys);
+      return next(createError(400, "Bad Request"));
+    }
+    const result = await recipes.insertOne(newRecipe);
+    console.log("Result: ", result);
+    res.status(201).send({ id: result.ops[0].id });
+  } catch (err) {
+    console.error("Error: ", err.message);
+    next(err);
+  }
+});
+
+// Create a new Delete endpoint
+app.delete("/api/recipes/:id", async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await recipes.deleteOne({ id: parseInt(id) });
+    console.log("Result: ", result);
+    res.status(204).send();
+  } catch (err) {
+    if (err.message === "No matching item found") {
+      return next(createError(404, "Recipe not found"));
+    }
+    console.error("Error: ", err.message);
+    next(err);
+  }
+});
 
 // add error handling
 // catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404)); });
+app.use(function (req, res, next) {
+  next(createError(404));
+});
 
 // error handler
-app.use(function(err, req, res, next) {
+app.use(function (err, req, res, next) {
   res.status(err.status || 500);
 
   res.json({
-    type: 'error',
+    type: "error",
     status: err.status,
     message: err.message,
-    stack: req.app.get('env') === 'development' ? err.stack : undefined
-    });
+    stack: req.app.get("env") === "development" ? err.stack : undefined,
   });
-
-
-
+});
 
 module.exports = app;
