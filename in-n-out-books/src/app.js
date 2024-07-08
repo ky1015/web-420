@@ -1,7 +1,8 @@
 /*
   Name: Kylie Struhs
-  Date: June 30 2024
+  Date: 07/03/2024
   File Name: app.js
+  Description: Project for Web 420
 */
 
 // set up Express Application
@@ -124,7 +125,6 @@ app.post("/api/books", async (req, res, next) => {
   }
 });
 
-
 // Create a new Delete endpoint
 app.delete("/api/books/:id", async (req, res, next) => {
   try {
@@ -135,6 +135,37 @@ app.delete("/api/books/:id", async (req, res, next) => {
   } catch (err) {
     if (err.message === "No matching item found") {
       return next(createError(404, "Book Title not found"));
+    }
+    console.error("Error: ", err.message);
+    next(err);
+  }
+});
+
+// create new PUT endpoint with validation
+app.put("/api/books/:id", async (req, res, next) => {
+  try {
+    let { id } = req.params;
+    let book = req.body;
+    id = parseInt(id);
+    if (isNaN(id)) {
+      return next(createError(400, "Input must be a number"));
+    }
+    const expectedKeys = ["title", "author"];
+    const receivedKeys = Object.keys(book);
+    if (
+      !receivedKeys.every((key) => expectedKeys.includes(key)) ||
+      receivedKeys.length !== expectedKeys.length
+    ) {
+      console.error("Bad Request: Missing keys or extra keys", receivedKeys);
+      return next(createError(400, "Bad Request"));
+    }
+    const result = await books.updateOne({ id: id }, book);
+    console.log("Result: ", result);
+    res.status(204).send();
+  } catch (err) {
+    if (err.message === "No matching book found") {
+      console.log("Book not found", err.message);
+      return next(createError(404, "Book not found"));
     }
     console.error("Error: ", err.message);
     next(err);

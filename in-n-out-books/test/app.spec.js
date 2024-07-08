@@ -1,6 +1,6 @@
 /*
 Name: Kylie Struhs
-Date: 06/27/2024
+Date: 07/03/2024
 File Name: app.spec.js
 Description: Test Suite for app.js
 */
@@ -62,5 +62,34 @@ describe("Chapter 4: API Tests", () => {
   it("should return a 204 status code when deleting a book", async () => {
     const res = await request(app).delete("/api/books/99");
     expect(res.statusCode).toEqual(204);
+  });
+});
+
+// Chapter 5 Tests
+describe("Chapter 5: API Tests", () => {
+  it("should return a 204 status code when updating a book", async () => {
+    const res = await request(app).put("/api/books/1").send({
+      title: "Warrior Cats: Book 1",
+      author: "Erin Hunter",
+    });
+    expect(res.statusCode).toEqual(204);
+  });
+
+  it("should return a 400 status code when updating a book with a non-numeric id", async () => {
+    const res = await request(app).put("/api/books/foo").send({
+      title: "Test Book",
+      author: "Test Author",
+    });
+
+    expect(res.statusCode).toEqual(400);
+    expect(res.body.message).toEqual("Input must be a number");
+  });
+
+  it("should return a 400 status code when updating a book with a missing title", async () => {
+    const res = await request(app).put("/api/books/1").send({
+      name: "Test Book",
+    });
+    expect(res.statusCode).toEqual(400);
+    expect(res.body.message).toEqual("Bad Request");
   });
 });
