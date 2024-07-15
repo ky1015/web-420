@@ -87,9 +87,44 @@ describe("Chapter 5: API Tests", () => {
 
   it("should return a 400 status code when updating a book with a missing title", async () => {
     const res = await request(app).put("/api/books/1").send({
-      name: "Test Book",
+      title: "Test Book",
     });
     expect(res.statusCode).toEqual(400);
     expect(res.body.message).toEqual("Bad Request");
+  });
+});
+
+// Chapter 6 Tests
+describe("Chapter 6: API Tests", () => {
+  it("should log a user in and return a 200 status with the message 'Authentication successful'", async () => {
+    const res = await request(app).post("/api/login").send({
+      email: "harry@hogwarts.edu",
+      password: "potter",
+    });
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.message).toEqual("Authentication successful");
+  });
+
+  it("should return a 401 status code for invalid password", async () => {
+    const res = await request(app)
+      .post("/api/login")
+      .send({ email: "harry@hogwarts.edu", password: "wrongpassword" });
+    expect(res.statusCode).toBe(401);
+    expect(res.body.message).toBe("Unauthorized");
+  });
+
+  it("should return a 400 status code when trying to login with too many or too few parameter values", async () => {
+    const res = await request(app).post("/api/login").send({
+      email: "harry@hogwarts.edu",
+      password: "potter",
+      extraKey: "extra",
+    });
+    expect(res.statusCode).toEqual(400);
+    expect(res.body.message).toEqual("Bad Request");
+    const res2 = await request(app).post("/api/login").send({
+      email: "harry@hogwarts.edu",
+    });
+    expect(res2.statusCode).toEqual(400);
+    expect(res2.body.message).toEqual("Bad Request");
   });
 });

@@ -1,6 +1,6 @@
 /*
   Name: Kylie Struhs
-  Date: 07/03/2024
+  Date: 07/11/2024
   File Name: app.js
   Description: Project for Web 420
 */
@@ -13,6 +13,8 @@ const createError = require("http-errors");
 const app = express(); // Creates an Express application
 
 const books = require("../database/books");
+
+const users = require("../database/users");
 
 app.use(express.static("public"));
 
@@ -120,6 +122,32 @@ app.post("/api/books", async (req, res, next) => {
     console.log("Result: ", result);
     res.status(201).send({ id: result.ops[0].id });
   } catch (err) {
+    console.error("Error: ", err.message);
+    next(err);
+  }
+});
+
+// Create a new POST endpoint to login a user, checks if email or password is missing, and checks if the password is valid
+app.post("/api/login", async (req, res, next) => {
+  try {
+    const user = req.body;
+    const expectedKeys = ["email", "password"];
+    const receivedKeys = Object.keys(user);
+    if (
+      !receivedKeys.every((key) => expectedKeys.includes(key)) ||
+      receivedKeys.length !== expectedKeys.length
+    ) {
+      console.error("Bad Request: Missing keys or extra keys", receivedKeys);
+      return next(createError(400, "Bad Request"));
+    }
+    let storedUser = await users.findOne({ email: user.email });
+    let storedPassword = storedUser.password;
+    if (bcrypt.compareSync(user.password, storedPassword) === false) {
+      return next(createError(401, "Unauthorized"));
+    }
+    res.status(200).send({ message: "Authentication successful" });
+  } catch (err) {
+    console.error("Error: ", err);
     console.error("Error: ", err.message);
     next(err);
   }

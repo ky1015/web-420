@@ -2,7 +2,7 @@
   Name: Kylie Struhs
   Date: June 23 2024
   File Name: app.js
-  Description:
+  Description: Cookbook Application example
 */
 
 // set up Express Application
@@ -13,6 +13,7 @@ const createError = require("http-errors");
 const app = express(); // Creates an Express application
 
 const recipes = require("../database/recipes");
+const users = require("../database/users");
 
 // parse incoming requests as JSON payloads
 app.use(express.json());
@@ -115,6 +116,43 @@ app.post("/api/recipes", async (req, res, next) => {
   }
 });
 
+// Create new POST endpoint to register a user, check if there are duplicate users with same email, and to check request parameter values
+app.post("/api/register", async (req, res, next) => {
+  console.log("Request body: ", req.body);
+  try {
+    const user = req.body;
+    const expectedKeys = ["email", "password"];
+    const receivedKeys = Object.keys(user);
+    if (
+      !receivedKeys.every((key) => expectedKeys.includes(key)) ||
+      receivedKeys.length !== expectedKeys.length
+    ) {
+      console.error("Bad Request: Missing keys or extra keys", receivedKeys);
+      return next(createError(400, "Bad Request"));
+    }
+    let duplicateUser;
+    try {
+      duplicateUser = await users.findOne({ email: user.email });
+    } catch (err) {
+      duplicateUser = null;
+    }
+    if (duplicateUser) {
+      console.error("Conflict: User already exists");
+      return next(createError(409, "Conflict"));
+    }
+    const hashedPassword = bcrypt.hashSync(user.password, 10);
+    const newUser = await users.insertOne({
+      email: user.email,
+      password: hashedPassword,
+    });
+    res.status(200).send({ user: newUser, message: "Registration successful" });
+  } catch (err) {
+    console.error("Error: ", err);
+    console.error("Error: ", err.message);
+    next(err);
+  }
+});
+
 // Create a new Delete endpoint
 app.delete("/api/recipes/:id", async (req, res, next) => {
   try {
@@ -134,31 +172,33 @@ app.delete("/api/recipes/:id", async (req, res, next) => {
 // Create a new PUT endpoint
 app.put("/api/recipes/:id", async (req, res, next) => {
   try {
-  let { id } = req.params;
-  let recipe = req.body;
-  id = parseInt(id);
-  if (isNaN(id)) {
-  return next(createError(400, "Input must be a number"));
-  }
-  const expectedKeys = ["name", "ingredients"];
-  const receivedKeys = Object.keys(recipe);
-  if (!receivedKeys.every(key => expectedKeys.includes(key)) ||
-  receivedKeys.length !== expectedKeys.length) {
-  console.error("Bad Request: Missing keys or extra keys", receivedKeys);
-  return next(createError(400, "Bad Request"));
-  }
-  const result = await recipes.updateOne({ id: id }, recipe);
-  console.log("Result: ", result);
-  res.status(204).send();
+    let { id } = req.params;
+    let recipe = req.body;
+    id = parseInt(id);
+    if (isNaN(id)) {
+      return next(createError(400, "Input must be a number"));
+    }
+    const expectedKeys = ["name", "ingredients"];
+    const receivedKeys = Object.keys(recipe);
+    if (
+      !receivedKeys.every((key) => expectedKeys.includes(key)) ||
+      receivedKeys.length !== expectedKeys.length
+    ) {
+      console.error("Bad Request: Missing keys or extra keys", receivedKeys);
+      return next(createError(400, "Bad Request"));
+    }
+    const result = await recipes.updateOne({ id: id }, recipe);
+    console.log("Result: ", result);
+    res.status(204).send();
   } catch (err) {
-  if (err.message === "No matching item found") {
-  console.log("Recipe not found", err.message)
-  return next(createError(404, "Recipe not found"));
+    if (err.message === "No matching item found") {
+      console.log("Recipe not found", err.message);
+      return next(createError(404, "Recipe not found"));
+    }
+    console.error("Error: ", err.message);
+    next(err);
   }
-  console.error("Error: ", err.message);
-  next(err);
-  }
-  });
+});
 
 // add error handling
 // catch 404 and forward to error handler
