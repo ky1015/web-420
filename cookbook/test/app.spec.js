@@ -1,6 +1,6 @@
 /*
 Name: Kylie Struhs
-Date: 06/22/2024
+Date: 07/17/2024
 File Name: app.spec.js
 Description:
 */
@@ -72,18 +72,22 @@ describe("Chapter 4: API Tests", () => {
 // Chapter 5 Tests
 describe("Chapter 5: API Tests", () => {
   it("should return a 204 status code when updating a recipe", async () => {
-    const res = await request(app).put("/api/recipes/1").send({
-      name: "Pancakes",
-      ingredients: ["flour", "milk", "eggs", "sugar"]
-    })
+    const res = await request(app)
+      .put("/api/recipes/1")
+      .send({
+        name: "Pancakes",
+        ingredients: ["flour", "milk", "eggs", "sugar"],
+      });
     expect(res.statusCode).toEqual(204);
   });
 
   it("should return a 400 status code when updating a recipe with a non-numeric id", async () => {
-    const res = await request(app).put("/api/recipes/foo").send({
-      name: "Test Recipe",
-      ingredients: ["test", "test"]
-    });
+    const res = await request(app)
+      .put("/api/recipes/foo")
+      .send({
+        name: "Test Recipe",
+        ingredients: ["test", "test"],
+      });
 
     expect(res.statusCode).toEqual(400);
     expect(res.body.message).toEqual("Input must be a number");
@@ -91,52 +95,99 @@ describe("Chapter 5: API Tests", () => {
 
   it("should return a 400 status code when updating a recipe with missing keys or extra keys", async () => {
     const res = await request(app).put("/api/recipes/1").send({
-    name: "Test Recipe"
+      name: "Test Recipe",
     });
     expect(res.statusCode).toEqual(400);
     expect(res.body.message).toEqual("Bad Request");
-    const res2 = await request(app).put("/api/recipes/1").send({
-    name: "Test Recipe",
-    ingredients: ["test", "test"],
-    extraKey: "extra"
-    });
+    const res2 = await request(app)
+      .put("/api/recipes/1")
+      .send({
+        name: "Test Recipe",
+        ingredients: ["test", "test"],
+        extraKey: "extra",
+      });
     expect(res2.statusCode).toEqual(400);
     expect(res2.body.message).toEqual("Bad Request");
-    });
-})
+  });
+});
 
 // Chapter 6 Tests
 describe("Chapter 6: API Tests", () => {
   it("should return a 200 status code with a message of 'Registration successful' when registering a new user", async () => {
     const res = await request(app).post("/api/register").send({
-    email: "cedric@hogwarts.edu",
-    password: "diggory"
+      email: "cedric@hogwarts.edu",
+      password: "diggory",
     });
     expect(res.statusCode).toEqual(200);
     expect(res.body.message).toEqual("Registration successful");
+  });
+
+  it("should return a 409 status code with a message of 'Conflict' when registering a user with a duplicate email", async () => {
+    const res = await request(app).post("/api/register").send({
+      email: "harry@hogwarts.edu",
+      password: "potter",
+    });
+    expect(res.statusCode).toEqual(409);
+    expect(res.body.message).toEqual("Conflict");
+  });
+
+  it("should return a 400 status code when registering a new user with too many or too few parameter values", async () => {
+    const res = await request(app).post("/api/register").send({
+      email: "cedric@hogwarts.edu",
+      password: "diggory",
+      extraKey: "extra",
+    });
+    expect(res.statusCode).toEqual(400);
+    expect(res.body.message).toEqual("Bad Request");
+    const res2 = await request(app).post("/api/register").send({
+      email: "cedric@hogwarts.edu",
+    });
+    expect(res2.statusCode).toEqual(400);
+    expect(res2.body.message).toEqual("Bad Request");
+  });
+});
+
+// Chapter 7 Tests
+describe("Chapter 7: API Tests", () => {
+  it("should return a 200 status code with a message of 'Password reset successful' when resetting a user's password", async () => {
+    const res = await request(app)
+      .post("/api/users/harry@hogwarts.edu/resetpassword")
+      .send({
+        securityQuestions: [
+          { answer: "Hedwig" },
+          { answer: "Quidditch Through the Ages" },
+          { answer: "Evans" },
+        ],
+        newPassword: "password",
+      });
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.message).toEqual("Password reset successful");
+  });
+
+  it("should return a 400 status code with a message of 'Bad Request' when the request body fails ajv validation", async() => {
+    const res = await request(app).post("/api/users/harry@hogwarts.edu/resetpassword").
+    send({
+    securityQuestions: [
+    { answer: "Hedwig", question: "What is your pet's name?" },
+    { answer: "Quidditch Through the Ages", myName: "Harry Potter" }
+    ],
+    newPassword: "password"
+    });
+    expect(res.statusCode).toEqual(400);
+    expect(res.body.message).toEqual("Bad Request");
     });
 
-    it("should return a 409 status code with a message of 'Conflict' when registering a user with a duplicate email", async () => {
-      const res = await request(app).post("/api/register").send({
-      email: "harry@hogwarts.edu",
-      password: "potter"
+    it("should return 401 status code with a message of 'Unauthorized' when the security answers are incorrect", async() => {
+      const res = await request(app).post("/api/users/harry@hogwarts.edu/resetpassword").
+      send({
+      securityQuestions: [
+      { answer: "Fluzy"},
+      { answer: "Quidditch Through the Ages"},
+      { answer: "Evans" }
+      ],
+      newPassword: "password"
       });
-      expect(res.statusCode).toEqual(409);
-      expect(res.body.message).toEqual("Conflict");
+      expect(res.statusCode).toEqual(401);
+      expect(res.body.message).toEqual("Unauthorized");
       });
-
-      it("should return a 400 status code when registering a new user with too many or too few parameter values", async () => {
-        const res = await request(app).post("/api/register").send({
-        email: "cedric@hogwarts.edu",
-        password: "diggory",
-        extraKey: "extra"
-        });
-        expect(res.statusCode).toEqual(400);
-        expect(res.body.message).toEqual("Bad Request");
-        const res2 = await request(app).post("/api/register").send({
-        email: "cedric@hogwarts.edu"
-        });
-        expect(res2.statusCode).toEqual(400);
-        expect(res2.body.message).toEqual("Bad Request");
-        });
-})
+});

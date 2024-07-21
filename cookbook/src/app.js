@@ -1,6 +1,6 @@
 /*
   Name: Kylie Struhs
-  Date: June 23 2024
+  Date: July 17 2024
   File Name: app.js
   Description: Cookbook Application example
 */
@@ -14,6 +14,29 @@ const app = express(); // Creates an Express application
 
 const recipes = require("../database/recipes");
 const users = require("../database/users");
+
+// set up ajv class and schema object
+const Ajv = require("ajv");
+const ajv = new Ajv();
+const securityQuestionsSchema = {
+  type: "object",
+  properties: {
+    newPassword: { type: "string" },
+    securityQuestions: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          answer: { type: "string" },
+        },
+        required: ["answer"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["newPassword", "securityQuestions"],
+  additionalProperties: false,
+};
 
 // parse incoming requests as JSON payloads
 app.use(express.json());
@@ -94,7 +117,7 @@ app.get("/api/recipes/:id", async (req, res, next) => {
   }
 });
 
-// Create new POST endpoint
+// Create new POST endpoint for recipes
 app.post("/api/recipes", async (req, res, next) => {
   try {
     const newRecipe = req.body;
@@ -152,6 +175,36 @@ app.post("/api/register", async (req, res, next) => {
     next(err);
   }
 });
+
+// Create a new endpoint for password reset
+app.post("/api/users/:email/resetpassword", async (req, res, next) => {
+  try {
+  const { email } = req.params;
+  const { newPassword, securityQuestions } = req.body;
+  const validate = ajv.compile(securityQuestionsSchema);
+  const valid = validate(req.body);
+  if (!valid) {
+  console.error("Bad Request: Invalid request body", validate.errors);
+  return next(createError(400, "Bad Request"));
+  }
+  const user = await users.findOne({ email: email });
+  if (securityQuestions[0].answer !== user.securityQuestions[0].answer ||
+  securityQuestions[1].answer !== user.securityQuestions[1].answer ||
+  securityQuestions[2].answer !== user.securityQuestions[2].answer) {
+  console.error("Unauthorized: Security questions do not match");
+  return next(createError(401, "Unauthorized"));
+  }
+  const hashedPassword = bcrypt.hashSync(newPassword, 10);
+  user.password = hashedPassword;
+  100
+  const result = await users.updateOne({ email: email }, {user});
+  console.log("Result: ", result);
+  res.status(200).send({ message: "Password reset successful", user: user});
+  } catch (err) {
+  console.error("Error: ", err.message);
+  next(err);
+  }
+  });
 
 // Create a new Delete endpoint
 app.delete("/api/recipes/:id", async (req, res, next) => {
